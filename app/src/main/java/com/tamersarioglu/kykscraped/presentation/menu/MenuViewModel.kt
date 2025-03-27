@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.tamersarioglu.kykscraped.domain.model.City
 import com.tamersarioglu.kykscraped.domain.model.Cities
 import com.tamersarioglu.kykscraped.domain.usecase.GetDailyMenusUseCase
+import com.tamersarioglu.kykscraped.domain.util.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,23 +58,19 @@ class MenuViewModel @Inject constructor(
         getDailyMenusUseCase(selectedCity.code, _state.value.isBreakfast)
             .onStart {
                 Log.d(TAG, "Menu loading started")
-                // Show loading state
-                _state.value = _state.value.copy(isLoading = true, error = null)
+                _state.value = _state.value.copy(menuResult = Result.loading())
             }
             .onEach { menus ->
                 Log.d(TAG, "Received ${menus.size} menus")
-                // Update with successful data
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    menus = menus
-                )
+                _state.value = _state.value.copy(menuResult = Result.success(menus))
             }
             .catch { e ->
                 Log.e(TAG, "Error loading menus", e)
-                // Update with error
                 _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = e.localizedMessage ?: "An unexpected error occurred"
+                    menuResult = Result.error(
+                        message = e.localizedMessage ?: "An unexpected error occurred",
+                        exception = if (e is Exception) e else Exception(e)
+                    )
                 )
             }
             .launchIn(viewModelScope)
